@@ -295,6 +295,17 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     // Konfigurasi Tata Letak Grafik
+    const axisBase = {
+      zeroline: true,
+      zerolinecolor: "rgba(148, 163, 184, 0.35)",
+      showgrid: true,
+      gridcolor: "rgba(148, 163, 184, 0.18)",
+      linecolor: "rgba(148, 163, 184, 0.35)",
+      tickcolor: "rgba(148, 163, 184, 0.35)",
+      tickfont: { color: "#cbd5f5" },
+      titlefont: { color: "#cbd5f5" },
+    };
+
     const layout = {
       title: {
         text: isEmbed
@@ -305,27 +316,22 @@ document.addEventListener("DOMContentLoaded", () => {
       xaxis: {
         title: "Posisi Ruang (x)",
         range: viewState.xRange,
-        zeroline: true,
-        zerolinecolor: "rgba(148, 163, 184, 0.35)",
-        showgrid: true,
-        gridcolor: "rgba(148, 163, 184, 0.18)",
-        linecolor: "rgba(148, 163, 184, 0.35)",
-        tickcolor: "rgba(148, 163, 184, 0.35)",
-        tickfont: { color: "#cbd5f5" },
-        titlefont: { color: "#cbd5f5" },
+        ...axisBase,
+        showticklabels: !isEmbed,
+        ticks: isEmbed ? "" : "outside",
+        title: isEmbed ? "" : "Posisi Ruang (x)",
+        fixedrange: isEmbed,
       },
       yaxis: {
         title: "Tingkat Energi & Amplitudo",
         range: viewState.yRange,
-        zeroline: true,
-        zerolinecolor: "rgba(148, 163, 184, 0.35)",
-        gridcolor: "rgba(148, 163, 184, 0.18)",
-        linecolor: "rgba(148, 163, 184, 0.35)",
-        tickcolor: "rgba(148, 163, 184, 0.35)",
-        tickfont: { color: "#cbd5f5" },
-        titlefont: { color: "#cbd5f5" },
+        ...axisBase,
+        showticklabels: !isEmbed,
+        ticks: isEmbed ? "" : "outside",
+        title: isEmbed ? "" : "Tingkat Energi & Amplitudo",
+        fixedrange: isEmbed,
       },
-      margin: { t: isEmbed ? 30 : 50, l: 60, r: 30, b: isEmbed ? 40 : 60 },
+      margin: { t: isEmbed ? 20 : 50, l: isEmbed ? 20 : 60, r: 20, b: isEmbed ? 20 : 60 },
       showlegend: !isEmbed,
       legend: {
         orientation: "h",
@@ -334,11 +340,11 @@ document.addEventListener("DOMContentLoaded", () => {
         xanchor: "center",
         font: { color: "#cbd5f5" },
       },
-      dragmode: "pan",
+      dragmode: isEmbed ? false : "pan",
       uirevision: "view",
       plot_bgcolor: "rgba(15, 23, 42, 0)",
       paper_bgcolor: "rgba(15, 23, 42, 0)",
-      hovermode: "x",
+      hovermode: isEmbed ? false : "x",
       hoverlabel: {
         bgcolor: "rgba(15, 23, 42, 0.95)",
         bordercolor: "rgba(148, 163, 184, 0.4)",
@@ -349,7 +355,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const config = {
       responsive: true,
       displayModeBar: false,
-      scrollZoom: true,
+      scrollZoom: !isEmbed,
     };
 
     if (!plotInitialized) {
