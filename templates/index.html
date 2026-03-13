@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="id">
+<html lang="id" class="h-full">
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -11,7 +11,10 @@
         />
         <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
     </head>
-    <body class="min-h-screen bg-slate-950 text-slate-100">
+    <body
+        class="min-h-screen bg-slate-950 text-slate-100 {% if is_embed %}h-full overflow-hidden{% endif %}"
+        data-embed="{{ '1' if is_embed else '0' }}"
+    >
         {% set is_embed = embed | default(false) %}
         <div class="relative overflow-hidden">
             {% if not is_embed %}
@@ -44,35 +47,38 @@
             </header>
 
             <main
-                class="{% if is_embed %}px-2 py-3{% else %}mx-auto max-w-6xl px-6 pb-16 pt-10{% endif %}"
+                class="{% if is_embed %}px-2 py-2{% else %}mx-auto max-w-6xl px-6 pb-16 pt-10{% endif %}"
             >
                 <div
                     class="{% if is_embed %}space-y-4{% else %}grid gap-8 lg:grid-cols-3{% endif %}"
                 >
                     <section
-                        class="{% if is_embed %}rounded-3xl border border-slate-800 bg-slate-900/70 p-4 shadow-2xl{% else %}lg:col-span-2 rounded-3xl border border-slate-800 bg-slate-900/70 p-6 shadow-2xl{% endif %}"
+                        class="{% if is_embed %}rounded-3xl border border-slate-800 bg-slate-900/70 p-3 shadow-2xl overflow-hidden{% else %}lg:col-span-2 rounded-3xl border border-slate-800 bg-slate-900/70 p-6 shadow-2xl{% endif %}"
                     >
-                        <div class="flex items-start justify-between gap-4">
-                            <div>
-                                <h1
-                                    class="text-2xl font-semibold text-white"
-                                    style="font-family: 'Space Grotesk', sans-serif"
+                        {% if not is_embed %}
+                            <div class="flex items-start justify-between gap-4">
+                                <div>
+                                    <h1
+                                        class="text-2xl font-semibold text-white"
+                                        style="font-family: 'Space Grotesk', sans-serif"
+                                    >
+                                        Simulasi Quantum Tunneling
+                                    </h1>
+                                    <p class="mt-2 text-sm text-slate-300">
+                                        Animasi gelombang berjalan memperlihatkan
+                                        probabilitas transmisi dan refleksi secara
+                                        real-time.
+                                    </p>
+                                </div>
+                                <span
+                                    class="hidden rounded-full bg-emerald-400/10 px-3 py-1 text-xs text-emerald-300 sm:inline-flex"
+                                    >Live</span
                                 >
-                                    Simulasi Quantum Tunneling
-                                </h1>
-                                <p class="mt-2 text-sm text-slate-300">
-                                    Animasi gelombang berjalan memperlihatkan
-                                    probabilitas transmisi dan refleksi secara real-time.
-                                </p>
                             </div>
-                            <span
-                                class="hidden rounded-full bg-emerald-400/10 px-3 py-1 text-xs text-emerald-300 sm:inline-flex"
-                                >Live</span
-                            >
-                        </div>
+                        {% endif %}
                         <div
                             id="plot-container"
-                            class="{% if is_embed %}mt-4 h-64 w-full sm:h-72{% else %}mt-6 h-[420px] w-full{% endif %}"
+                            class="{% if is_embed %}mt-2 h-52 w-full sm:h-56{% else %}mt-6 h-[420px] w-full{% endif %}"
                         ></div>
                         <div
                             class="{% if is_embed %}mt-4 hidden{% else %}mt-5 flex flex-wrap gap-3{% endif %}"

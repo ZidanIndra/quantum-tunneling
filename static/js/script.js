@@ -1,5 +1,6 @@
 // Menunggu DOM ter-load penuh
 document.addEventListener("DOMContentLoaded", () => {
+  const isEmbed = document.body.dataset.embed === "1";
   // 1. Pemetaan Referensi Elemen UI
   const sliders = {
     E: document.getElementById("energy-slider"),
@@ -296,36 +297,53 @@ document.addEventListener("DOMContentLoaded", () => {
     // Konfigurasi Tata Letak Grafik
     const layout = {
       title: {
-        text: "Simulasi Quantum Tunneling (Animasi Gelombang Berjalan)",
-        font: { size: 16 },
+        text: isEmbed
+          ? ""
+          : "Simulasi Quantum Tunneling (Animasi Gelombang Berjalan)",
+        font: { size: 16, color: "#e2e8f0" },
       },
       xaxis: {
         title: "Posisi Ruang (x)",
         range: viewState.xRange,
         zeroline: true,
-        zerolinecolor: "#bdc3c7",
+        zerolinecolor: "rgba(148, 163, 184, 0.35)",
         showgrid: true,
-        gridcolor: "#ecf0f1",
+        gridcolor: "rgba(148, 163, 184, 0.18)",
+        linecolor: "rgba(148, 163, 184, 0.35)",
+        tickcolor: "rgba(148, 163, 184, 0.35)",
+        tickfont: { color: "#cbd5f5" },
+        titlefont: { color: "#cbd5f5" },
       },
       yaxis: {
         title: "Tingkat Energi & Amplitudo",
         range: viewState.yRange,
         zeroline: true,
-        zerolinecolor: "#bdc3c7",
+        zerolinecolor: "rgba(148, 163, 184, 0.35)",
+        gridcolor: "rgba(148, 163, 184, 0.18)",
+        linecolor: "rgba(148, 163, 184, 0.35)",
+        tickcolor: "rgba(148, 163, 184, 0.35)",
+        tickfont: { color: "#cbd5f5" },
+        titlefont: { color: "#cbd5f5" },
       },
-      margin: { t: 50, l: 60, r: 30, b: 60 },
-      showlegend: true,
+      margin: { t: isEmbed ? 30 : 50, l: 60, r: 30, b: isEmbed ? 40 : 60 },
+      showlegend: !isEmbed,
       legend: {
         orientation: "h",
         y: -0.15,
         x: 0.5,
         xanchor: "center",
+        font: { color: "#cbd5f5" },
       },
       dragmode: "pan",
       uirevision: "view",
-      plot_bgcolor: "#ffffff",
-      paper_bgcolor: "#ffffff",
+      plot_bgcolor: "rgba(15, 23, 42, 0)",
+      paper_bgcolor: "rgba(15, 23, 42, 0)",
       hovermode: "x",
+      hoverlabel: {
+        bgcolor: "rgba(15, 23, 42, 0.95)",
+        bordercolor: "rgba(148, 163, 184, 0.4)",
+        font: { color: "#e2e8f0" },
+      },
     };
 
     const config = {
