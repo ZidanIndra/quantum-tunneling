@@ -35,16 +35,6 @@ document.addEventListener("DOMContentLoaded", () => {
     speed: document.getElementById("speed-input"),
   };
 
-  // 2. State Aplikasi Dasar
-  let currentData = { E: 1.0, V0: 2.0, L: 1.0 };
-  let plotInitialized = false; // Flag untuk Plotly
-  let simulationResult = null; // Menyimpan hasil komputasi dari backend
-  let animationId = null; // ID untuk requestAnimationFrame
-  let plotEventsAttached = false;
-  let animationPaused = false;
-  let pauseOffset = 0;
-  let pausedAt = 0;
-
   const baseRange = { x: [-5, 5], y: [-5, 5] };
   let viewState = {
     zoom: 1.0,
@@ -52,6 +42,22 @@ document.addEventListener("DOMContentLoaded", () => {
     xRange: [...baseRange.x],
     yRange: [...baseRange.y],
   };
+
+  // 2. State Aplikasi Dasar
+  let currentData = {
+    E: 1.0,
+    V0: 2.0,
+    L: 1.0,
+    x_min: viewState.xRange[0],
+    x_max: viewState.xRange[1],
+  };
+  let plotInitialized = false; // Flag untuk Plotly
+  let simulationResult = null; // Menyimpan hasil komputasi dari backend
+  let animationId = null; // ID untuk requestAnimationFrame
+  let plotEventsAttached = false;
+  let animationPaused = false;
+  let pauseOffset = 0;
+  let pausedAt = 0;
 
   // 3. Logika Event Listeners
   // Fungsi untuk menyinkronkan UI Slider & Input Box
@@ -122,6 +128,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     viewState.xRange = [xCenter - halfX, xCenter + halfX];
     viewState.yRange = [yCenter - halfY, yCenter + halfY];
+    currentData.x_min = viewState.xRange[0];
+    currentData.x_max = viewState.xRange[1];
 
     if (plotInitialized) {
       Plotly.relayout(plotContainer, {
@@ -129,6 +137,8 @@ document.addEventListener("DOMContentLoaded", () => {
         "yaxis.range": viewState.yRange,
       });
     }
+
+    fetchSimulationData();
   }
 
   function syncViewControl(id, value) {

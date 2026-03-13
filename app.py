@@ -58,13 +58,45 @@ def simulate():
     R = 1.0 - T  # Koefisien Refleksi
 
     # --- 3. Penyusunan Array Fungsi Gelombang untuk Visualisasi ---
-    x_min = -5.0
-    x_max = 5.0
+    x_min = float(data.get("x_min", -5.0))
+    x_max = float(data.get("x_max", 5.0))
 
-    # Resolusi array ruang
-    x1 = np.linspace(x_min, 0, 150)
-    x2 = np.linspace(0, L, 50)
-    x3 = np.linspace(L, x_max, 150)
+    if x_min >= x_max:
+        x_min = -5.0
+        x_max = 5.0
+
+    def points_for(length, density, min_points):
+        return max(min_points, int(length * density))
+
+    def make_region(start, end, points):
+        if end <= start:
+            return np.array([])
+        return np.linspace(start, end, points)
+
+    density_free = 30.0
+    density_barrier = 50.0
+
+    x1_end = min(0.0, x_max)
+    x2_start = max(0.0, x_min)
+    x2_end = min(L, x_max)
+    x3_start = max(L, x_min)
+
+    # Resolusi array ruang (disesuaikan dengan rentang)
+    x1 = make_region(
+        x_min,
+        x1_end,
+        points_for(x1_end - x_min, density_free, 50),
+    )
+    x2 = make_region(
+        x2_start,
+        x2_end,
+        points_for(x2_end - x2_start, density_barrier, 30),
+    )
+    x3 = make_region(
+        x3_start,
+        x_max,
+        points_for(x_max - x3_start, density_free, 50),
+    )
 
     # Menghitung persamaan fungsi gelombang di setiap wilayah
     psi1 = np.exp(1j * k1 * x1) + r * np.exp(-1j * k1 * x1)
@@ -72,8 +104,20 @@ def simulate():
     psi3 = t * np.exp(1j * k1 * x3)
 
     # Menggabungkan array ruang dan probabilitas kerapatan |psi|^2
-    x_all = np.concatenate((x1, x2, x3))
-    psi_all = np.concatenate((psi1, psi2, psi3))
+    x_segments = []
+    psi_segments = []
+    if x1.size:
+        x_segments.append(x1)
+        psi_segments.append(psi1)
+    if x2.size:
+        x_segments.append(x2)
+        psi_segments.append(psi2)
+    if x3.size:
+        x_segments.append(x3)
+        psi_segments.append(psi3)
+
+    x_all = np.concatenate(x_segments)
+    psi_all = np.concatenate(psi_segments)
     psi_sq = np.abs(psi_all) ** 2
 
     # --- 4. Fungsi Potensial Background ---
