@@ -58,6 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let animationPaused = false;
   let pauseOffset = 0;
   let pausedAt = 0;
+  let relayoutTimer = null;
 
   // 3. Logika Event Listeners
   // Fungsi untuk menyinkronkan UI Slider & Input Box
@@ -351,6 +352,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
           if (x0 !== undefined && x1 !== undefined) {
             viewState.xRange = [x0, x1];
+            currentData.x_min = x0;
+            currentData.x_max = x1;
           }
           if (y0 !== undefined && y1 !== undefined) {
             viewState.yRange = [y0, y1];
@@ -360,6 +363,15 @@ document.addEventListener("DOMContentLoaded", () => {
             viewState.xRange = [...baseRange.x];
             viewState.yRange = [...baseRange.y];
             applyZoom();
+          }
+
+          if (x0 !== undefined && x1 !== undefined) {
+            if (relayoutTimer) {
+              clearTimeout(relayoutTimer);
+            }
+            relayoutTimer = setTimeout(() => {
+              fetchSimulationData();
+            }, 120);
           }
         });
         plotEventsAttached = true;
