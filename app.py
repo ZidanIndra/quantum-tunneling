@@ -58,8 +58,8 @@ def simulate():
     R = 1.0 - T  # Koefisien Refleksi
 
     # --- 3. Penyusunan Array Fungsi Gelombang untuk Visualisasi ---
-    x_min = -3.0
-    x_max = L + 3.0
+    x_min = -5.0
+    x_max = 5.0
 
     # Resolusi array ruang
     x1 = np.linspace(x_min, 0, 150)

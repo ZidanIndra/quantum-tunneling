@@ -22,12 +22,36 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const btnReset = document.getElementById("btn-reset");
+  const btnPause = document.getElementById("btn-pause");
+  const plotContainer = document.getElementById("plot-container");
+
+  const viewSliders = {
+    zoom: document.getElementById("zoom-slider"),
+    speed: document.getElementById("speed-slider"),
+  };
+
+  const viewInputs = {
+    zoom: document.getElementById("zoom-input"),
+    speed: document.getElementById("speed-input"),
+  };
 
   // 2. State Aplikasi Dasar
   let currentData = { E: 1.0, V0: 2.0, L: 1.0 };
   let plotInitialized = false; // Flag untuk Plotly
   let simulationResult = null; // Menyimpan hasil komputasi dari backend
   let animationId = null; // ID untuk requestAnimationFrame
+  let plotEventsAttached = false;
+  let animationPaused = false;
+  let pauseOffset = 0;
+  let pausedAt = 0;
+
+  const baseRange = { x: [-5, 5], y: [-5, 5] };
+  let viewState = {
+    zoom: 1.0,
+    speed: 1.0,
+    xRange: [...baseRange.x],
+    yRange: [...baseRange.y],
+  };
 
   // 3. Logika Event Listeners
   // Fungsi untuk menyinkronkan UI Slider & Input Box
@@ -68,6 +92,73 @@ document.addEventListener("DOMContentLoaded", () => {
     syncControls("E", 1.0);
     syncControls("V0", 2.0);
     syncControls("L", 1.0);
+  });
+
+  btnPause.addEventListener("click", () => {
+    if (animationPaused) {
+      animationPaused = false;
+      pauseOffset = performance.now() - pausedAt;
+      btnPause.innerText = "Pause Animasi";
+    } else {
+      animationPaused = true;
+      pausedAt = performance.now() - pauseOffset;
+      btnPause.innerText = "Lanjutkan Animasi";
+    }
+  });
+
+  function getAnimTime() {
+    return animationPaused ? pausedAt : performance.now() - pauseOffset;
+  }
+
+  function applyZoom() {
+    const xCenter = (viewState.xRange[0] + viewState.xRange[1]) / 2;
+    const yCenter = (viewState.yRange[0] + viewState.yRange[1]) / 2;
+
+    const baseHalfX = (baseRange.x[1] - baseRange.x[0]) / 2;
+    const baseHalfY = (baseRange.y[1] - baseRange.y[0]) / 2;
+
+    const halfX = baseHalfX / viewState.zoom;
+    const halfY = baseHalfY / viewState.zoom;
+
+    viewState.xRange = [xCenter - halfX, xCenter + halfX];
+    viewState.yRange = [yCenter - halfY, yCenter + halfY];
+
+    if (plotInitialized) {
+      Plotly.relayout(plotContainer, {
+        "xaxis.range": viewState.xRange,
+        "yaxis.range": viewState.yRange,
+      });
+    }
+  }
+
+  function syncViewControl(id, value) {
+    viewSliders[id].value = value;
+    viewInputs[id].value = value;
+
+    const numericValue = parseFloat(value);
+    if (id === "zoom") {
+      viewState.zoom = numericValue;
+      applyZoom();
+    } else if (id === "speed") {
+      viewState.speed = numericValue;
+    }
+  }
+
+  Object.keys(viewSliders).forEach((key) => {
+    viewSliders[key].addEventListener("input", (e) => {
+      syncViewControl(key, e.target.value);
+    });
+
+    viewInputs[key].addEventListener("change", (e) => {
+      let val = parseFloat(e.target.value);
+      const min = parseFloat(e.target.min);
+      const max = parseFloat(e.target.max);
+
+      if (val < min) val = min;
+      if (val > max) val = max;
+
+      syncViewControl(key, val);
+    });
   });
 
   // 4. API Fetching ke Backend Flask
@@ -167,7 +258,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Trace 3: Gelombang Berjalan (Real Part of Psi)
     // Hitung posisi awal gelombang berdasarkan waktu agar tidak flicker
-    const time = performance.now() * 0.005;
+    const time = getAnimTime() * 0.005 * viewState.speed;
     const phase = data.E * time;
     const cos_p = Math.cos(phase);
     const sin_p = Math.sin(phase);
@@ -199,7 +290,7 @@ document.addEventListener("DOMContentLoaded", () => {
       },
       xaxis: {
         title: "Posisi Ruang (x)",
-        range: [-3, Math.max(4, data.L + 3)],
+        range: viewState.xRange,
         zeroline: true,
         zerolinecolor: "#bdc3c7",
         showgrid: true,
@@ -207,7 +298,7 @@ document.addEventListener("DOMContentLoaded", () => {
       },
       yaxis: {
         title: "Tingkat Energi & Amplitudo",
-        range: [0, Math.max(5.5, data.V0 + 1)],
+        range: viewState.yRange,
         zeroline: true,
         zerolinecolor: "#bdc3c7",
       },
@@ -219,6 +310,8 @@ document.addEventListener("DOMContentLoaded", () => {
         x: 0.5,
         xanchor: "center",
       },
+      dragmode: "pan",
+      uirevision: "view",
       plot_bgcolor: "#ffffff",
       paper_bgcolor: "#ffffff",
       hovermode: "x",
@@ -227,6 +320,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const config = {
       responsive: true,
       displayModeBar: false,
+      scrollZoom: true,
     };
 
     if (!plotInitialized) {
@@ -237,6 +331,29 @@ document.addEventListener("DOMContentLoaded", () => {
         config,
       );
       plotInitialized = true;
+
+      if (!plotEventsAttached) {
+        plotContainer.on("plotly_relayout", (eventData) => {
+          const x0 = eventData["xaxis.range[0]"];
+          const x1 = eventData["xaxis.range[1]"];
+          const y0 = eventData["yaxis.range[0]"];
+          const y1 = eventData["yaxis.range[1]"];
+
+          if (x0 !== undefined && x1 !== undefined) {
+            viewState.xRange = [x0, x1];
+          }
+          if (y0 !== undefined && y1 !== undefined) {
+            viewState.yRange = [y0, y1];
+          }
+
+          if (eventData["xaxis.autorange"] || eventData["yaxis.autorange"]) {
+            viewState.xRange = [...baseRange.x];
+            viewState.yRange = [...baseRange.y];
+            applyZoom();
+          }
+        });
+        plotEventsAttached = true;
+      }
     } else {
       Plotly.react(
         "plot-container",
@@ -255,7 +372,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const data = simulationResult;
-    const time = performance.now() * 0.005; // Faktor kecepatan animasi
+    if (animationPaused) {
+      animationId = requestAnimationFrame(animateWave);
+      return;
+    }
+
+    const time = getAnimTime() * 0.005 * viewState.speed; // Faktor kecepatan animasi
 
     // Frekuensi osilasi bergantung pada Energi (E)
     const phase = data.E * time;
