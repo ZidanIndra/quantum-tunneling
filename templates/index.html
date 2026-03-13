@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="id">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Simulasi Quantum Tunneling</title>
+        <!-- Menghubungkan CSS statis -->
+        <link
+            rel="stylesheet"
+            href="{{ url_for('static', filename='css/style.css') }}"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap"
+            rel="stylesheet"
+        />
+        <!-- Plotly.js untuk rendering grafik yang reaktif -->
+        <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    </head>
+    <body>
+        <div class="app-container">
+            <!-- Header Aplikasi -->
+            <header class="app-header">
+                <h1>Simulasi Quantum Tunneling</h1>
+                <p>
+                    Visualisasi Probabilitas Kerapatan (|ψ|²) Partikel pada
+                    Penghalang Potensial 1D
+                </p>
+            </header>
+
+            <!-- Konten Utama: Split-screen asimetris 70:30 -->
+            <main class="main-content">
+                <!-- Sisi Kiri: Kanvas Simulasi (70%) -->
+                <section class="canvas-section">
+                    <!-- Kontainer grafik dari Plotly -->
+                    <div id="plot-container"></div>
+                    <!-- Tombol aksi di bawah kanvas -->
+                    <div class="canvas-controls">
+                        <button id="btn-reset" class="btn btn-secondary">
+                            Reset Parameter
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Sisi Kanan: Panel Kontrol (30%) -->
+                <section class="control-section">
+                    <!-- Kartu Kontrol Parameter Slider -->
+                    <div class="control-card">
+                        <h2>Kontrol Parameter</h2>
+
+                        <!-- Slider Energi (E) -->
+                        <div class="control-group">
+                            <label for="energy-slider"
+                                >Energi Partikel (E)</label
+                            >
+                            <div class="slider-container">
+                                <input
+                                    type="range"
+                                    id="energy-slider"
+                                    min="0.1"
+                                    max="5.0"
+                                    step="0.1"
+                                    value="1.0"
+                                />
+                                <input
+                                    type="number"
+                                    id="energy-input"
+                                    min="0.1"
+                                    max="5.0"
+                                    step="0.1"
+                                    value="1.0"
+                                />
+                            </div>
+                        </div>
+
+                        <!-- Slider Tinggi Penghalang (V0) -->
+                        <div class="control-group">
+                            <label for="v0-slider"
+                                >Tinggi Penghalang (V₀)</label
+                            >
+                            <div class="slider-container">
+                                <input
+                                    type="range"
+                                    id="v0-slider"
+                                    min="0.1"
+                                    max="5.0"
+                                    step="0.1"
+                                    value="2.0"
+                                />
+                                <input
+                                    type="number"
+                                    id="v0-input"
+                                    min="0.1"
+                                    max="5.0"
+                                    step="0.1"
+                                    value="2.0"
+                                />
+                            </div>
+                        </div>
+
+                        <!-- Slider Lebar Penghalang (L) -->
+                        <div class="control-group">
+                            <label for="length-slider"
+                                >Lebar Penghalang (L)</label
+                            >
+                            <div class="slider-container">
+                                <input
+                                    type="range"
+                                    id="length-slider"
+                                    min="0.1"
+                                    max="3.0"
+                                    step="0.1"
+                                    value="1.0"
+                                />
+                                <input
+                                    type="number"
+                                    id="length-input"
+                                    min="0.1"
+                                    max="3.0"
+                                    step="0.1"
+                                    value="1.0"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kartu Output Analitik & Fisika -->
+                    <div class="control-card output-card">
+                        <h2>Output Analitik</h2>
+                        <!-- Nilai T dan R -->
+                        <div class="output-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Transmisi (T)</span>
+                                <span class="stat-value" id="val-transmission"
+                                    >0%</span
+                                >
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Refleksi (R)</span>
+                                <span class="stat-value" id="val-reflection"
+                                    >100%</span
+                                >
+                            </div>
+                        </div>
+
+                        <!-- Bar Visual untuk T dan R -->
+                        <div class="prob-bar-container">
+                            <div
+                                class="prob-bar"
+                                id="bar-transmission"
+                                style="width: 0%; background-color: #2ecc71"
+                            ></div>
+                            <div
+                                class="prob-bar"
+                                id="bar-reflection"
+                                style="width: 100%; background-color: #e74c3c"
+                            ></div>
+                        </div>
+
+                        <!-- Info Box yang responsif -->
+                        <div class="info-box">
+                            <p id="info-text">
+                                Memuat kalkulasi mekanika kuantum...
+                            </p>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+
+        <!-- Script JavaScript logika interaksi -->
+        <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    </body>
+</html>
