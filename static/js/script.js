@@ -325,6 +325,7 @@ document.addEventListener("DOMContentLoaded", () => {
         shape: "spline",
         smoothing: 1.3,
       },
+      hoverinfo: isEmbed ? "skip" : "x+y",
       name: "Gelombang Re(Ψ)",
     };
 
@@ -351,6 +352,8 @@ document.addEventListener("DOMContentLoaded", () => {
         title: "Posisi Ruang (x)",
         range: viewState.xRange,
         ...axisBase,
+        zeroline: !isEmbed,
+        showline: !isEmbed,
         showticklabels: !isEmbed,
         ticks: isEmbed ? "" : "outside",
         title: isEmbed ? "" : "Posisi Ruang (x)",
@@ -360,6 +363,8 @@ document.addEventListener("DOMContentLoaded", () => {
         title: "Tingkat Energi & Amplitudo",
         range: viewState.yRange,
         ...axisBase,
+        zeroline: !isEmbed,
+        showline: !isEmbed,
         showticklabels: !isEmbed,
         ticks: isEmbed ? "" : "outside",
         title: isEmbed ? "" : "Tingkat Energi & Amplitudo",
@@ -392,13 +397,12 @@ document.addEventListener("DOMContentLoaded", () => {
       scrollZoom: !isEmbed,
     };
 
+    const traces = isEmbed
+      ? [traceWave]
+      : [traceV, traceE, tracePsiSq, traceWave];
+
     if (!plotInitialized) {
-      Plotly.newPlot(
-        "plot-container",
-        [traceV, traceE, tracePsiSq, traceWave],
-        layout,
-        config,
-      );
+      Plotly.newPlot("plot-container", traces, layout, config);
       plotInitialized = true;
 
       if (!plotEventsAttached) {
@@ -435,12 +439,7 @@ document.addEventListener("DOMContentLoaded", () => {
         plotEventsAttached = true;
       }
     } else {
-      Plotly.react(
-        "plot-container",
-        [traceV, traceE, tracePsiSq, traceWave],
-        layout,
-        config,
-      );
+      Plotly.react("plot-container", traces, layout, config);
     }
   }
 
@@ -473,7 +472,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Update hanya koordinat Y dari Trace ke-3 (Gelombang Re(Ψ))
-    Plotly.restyle("plot-container", { y: [wave_y] }, [3]);
+    Plotly.restyle("plot-container", { y: [wave_y] }, [isEmbed ? 0 : 3]);
 
     // Lanjutkan loop
     animationId = requestAnimationFrame(animateWave);
