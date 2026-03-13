@@ -23,6 +23,26 @@ document.addEventListener("DOMContentLoaded", () => {
     info: document.getElementById("info-text"),
   };
 
+  const calcOutputs = {
+    inputs: document.getElementById("calc-inputs"),
+    caseText: document.getElementById("calc-case"),
+    k1: document.getElementById("calc-k1"),
+    k2: document.getElementById("calc-k2"),
+    kappa: document.getElementById("calc-kappa"),
+    tAbs: document.getElementById("calc-t"),
+    rAbs: document.getElementById("calc-r"),
+    T: document.getElementById("calc-T"),
+    R: document.getElementById("calc-R"),
+  };
+
+  const formulaOutputs = {
+    k1: document.getElementById("formula-k1"),
+    k2: document.getElementById("formula-k2"),
+    denom: document.getElementById("formula-denom"),
+    t: document.getElementById("formula-t"),
+    tr: document.getElementById("formula-tr"),
+  };
+
   const btnReset = document.getElementById("btn-reset");
   const btnPause = document.getElementById("btn-pause");
   const plotContainer = document.getElementById("plot-container");
@@ -61,6 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let pauseOffset = 0;
   let pausedAt = 0;
   let relayoutTimer = null;
+  let lastXLen = null;
 
   // 3. Logika Event Listeners
   // Fungsi untuk menyinkronkan UI Slider & Input Box
@@ -72,6 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   Object.keys(sliders).forEach((key) => {
+    if (!sliders[key] || !inputs[key]) return;
     // Event saat slider digeser secara kontinu
     sliders[key].addEventListener("input", (e) => {
       inputs[key].value = e.target.value;
@@ -97,23 +119,27 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Event Klik Reset Button
-  btnReset.addEventListener("click", () => {
-    syncControls("E", 1.0);
-    syncControls("V0", 2.0);
-    syncControls("L", 1.0);
-  });
+  if (btnReset) {
+    btnReset.addEventListener("click", () => {
+      syncControls("E", 1.0);
+      syncControls("V0", 2.0);
+      syncControls("L", 1.0);
+    });
+  }
 
-  btnPause.addEventListener("click", () => {
-    if (animationPaused) {
-      animationPaused = false;
-      pauseOffset = performance.now() - pausedAt;
-      btnPause.innerText = "Pause Animasi";
-    } else {
-      animationPaused = true;
-      pausedAt = performance.now() - pauseOffset;
-      btnPause.innerText = "Lanjutkan Animasi";
-    }
-  });
+  if (btnPause) {
+    btnPause.addEventListener("click", () => {
+      if (animationPaused) {
+        animationPaused = false;
+        pauseOffset = performance.now() - pausedAt;
+        btnPause.innerText = "Pause Animasi";
+      } else {
+        animationPaused = true;
+        pausedAt = performance.now() - pauseOffset;
+        btnPause.innerText = "Lanjutkan Animasi";
+      }
+    });
+  }
 
   function getAnimTime() {
     return animationPaused ? pausedAt : performance.now() - pauseOffset;
@@ -134,7 +160,7 @@ document.addEventListener("DOMContentLoaded", () => {
     currentData.x_min = viewState.xRange[0];
     currentData.x_max = viewState.xRange[1];
 
-    if (plotInitialized) {
+    if (plotInitialized && plotContainer && window.Plotly) {
       Plotly.relayout(plotContainer, {
         "xaxis.range": viewState.xRange,
         "yaxis.range": viewState.yRange,
@@ -158,6 +184,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   Object.keys(viewSliders).forEach((key) => {
+    if (!viewSliders[key] || !viewInputs[key]) return;
     viewSliders[key].addEventListener("input", (e) => {
       syncViewControl(key, e.target.value);
     });
@@ -197,6 +224,46 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  function renderMath(el, tex) {
+    if (!el) return;
+    if (window.katex && window.katex.render) {
+      window.katex.render(tex, el, {
+        throwOnError: false,
+        displayMode: false,
+      });
+    } else {
+      el.innerText = tex;
+    }
+  }
+
+  function renderStaticFormulas() {
+    renderMath(formulaOutputs.k1, "k_1 = \\sqrt{E}");
+    renderMath(
+      formulaOutputs.k2,
+      "k_2 = \\sqrt{E - V_0}\\;\\;\\text{atau}\\;\\; i\\sqrt{V_0 - E}"
+    );
+    renderMath(
+      formulaOutputs.denom,
+      "\\mathrm{denom} = (k_1 + k_2)^2 e^{-i k_2 L} - (k_1 - k_2)^2 e^{i k_2 L}"
+    );
+    renderMath(
+      formulaOutputs.t,
+      "t = \\frac{4 k_1 k_2 e^{-i k_1 L}}{\\mathrm{denom}}"
+    );
+    renderMath(formulaOutputs.tr, "T = |t|^2,\\; R = 1 - T");
+  }
+
+  function ensureKatexReady() {
+    if (window.katex && window.katex.render) {
+      renderStaticFormulas();
+      if (simulationResult) {
+        updateUI(simulationResult);
+      }
+      return;
+    }
+    setTimeout(ensureKatexReady, 80);
+  }
+
   // 5. Update UI dan Konten Informasi
   function updateUI(data) {
     // A. Panggil fungsi render Plotly (Struktur dasar grafik)
@@ -215,16 +282,77 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // C. Update Dynamic Tooltip (Edukasi Fisika)
     if (data.E < data.V0) {
-      outputs.info.innerHTML = `<strong>Kasus Kuantum (Tunneling):</strong> Energi partikel (E=${data.E.toFixed(1)}) lebih rendah dari Tinggi Penghalang (V₀=${data.V0.toFixed(1)}). Secara klasik partikel akan terpantul, namun mekanika kuantum membuktikan ada <strong>${T_percent}%</strong> probabilitas gelombang dapat menembus penghalang.`;
+      outputs.info.innerHTML = `<strong>Kasus Kuantum (Tunneling):</strong> Energi partikel (E=${data.E.toFixed(
+        1
+      )}) lebih rendah dari Tinggi Penghalang (V<sub>0</sub>=${data.V0.toFixed(
+        1
+      )}). Secara klasik partikel akan terpantul, namun mekanika kuantum membuktikan ada <strong>${T_percent}%</strong> probabilitas gelombang dapat menembus penghalang.`;
     } else if (data.E > data.V0) {
-      outputs.info.innerHTML = `<strong>Energi Ekstra:</strong> Energi partikel (E=${data.E.toFixed(1)}) melebihi Penghalang (V₀=${data.V0.toFixed(1)}). Secara klasik 100% tembus, namun secara kuantum <strong>${R_percent}%</strong> gelombang terpantul akibat perubahan mendadak pada medan potensial.`;
+      outputs.info.innerHTML = `<strong>Energi Ekstra:</strong> Energi partikel (E=${data.E.toFixed(
+        1
+      )}) melebihi Penghalang (V<sub>0</sub>=${data.V0.toFixed(
+        1
+      )}). Secara klasik 100% tembus, namun secara kuantum <strong>${R_percent}%</strong> gelombang terpantul akibat perubahan mendadak pada medan potensial.`;
     } else {
-      outputs.info.innerHTML = `Energi partikel (E) sama dengan tinggi penghalang (V₀). Keadaan transisi kuantum.`;
+      outputs.info.innerHTML = `Energi partikel (E) sama dengan tinggi penghalang (V<sub>0</sub>). Keadaan transisi kuantum.`;
     }
+
+    // D. Update langkah perhitungan
+    const formatNumber = (value, digits = 3) =>
+      Number.isFinite(value) ? value.toFixed(digits) : "-";
+
+    const k2Real = typeof data.k2_real === "number" ? data.k2_real : 0;
+    const k2Imag = typeof data.k2_imag === "number" ? data.k2_imag : 0;
+
+    const inputTex = `E=${data.E.toFixed(2)},\\; V_0=${data.V0.toFixed(
+      2
+    )},\\; L=${data.L.toFixed(2)}`;
+    renderMath(calcOutputs.inputs, inputTex);
+
+    if (data.E < data.V0) {
+      renderMath(calcOutputs.caseText, "\\text{Kasus: } E < V_0");
+    } else if (data.E > data.V0) {
+      renderMath(calcOutputs.caseText, "\\text{Kasus: } E > V_0");
+    } else {
+      renderMath(calcOutputs.caseText, "\\text{Kasus: } E = V_0");
+    }
+
+    renderMath(
+      calcOutputs.k1,
+      `k_1 = \\sqrt{E} = ${formatNumber(data.k1)}`
+    );
+
+    if (data.E < data.V0) {
+      renderMath(
+        calcOutputs.k2,
+        `k_2 = i\\sqrt{V_0 - E} = i\\sqrt{${data.V0.toFixed(2)} - ${data.E.toFixed(
+          2
+        )}} = i\\,${formatNumber(Math.abs(k2Imag))}`
+      );
+    } else if (data.E > data.V0) {
+      renderMath(
+        calcOutputs.k2,
+        `k_2 = \\sqrt{E - V_0} = \\sqrt{${data.E.toFixed(2)} - ${data.V0.toFixed(
+          2
+        )}} = ${formatNumber(k2Real)}`
+      );
+    } else {
+      renderMath(calcOutputs.k2, "k_2 = 0");
+    }
+
+    renderMath(
+      calcOutputs.kappa,
+      `\\kappa = \\sqrt{|V_0 - E|} = ${formatNumber(data.kappa)}`
+    );
+    renderMath(calcOutputs.tAbs, `|t| = ${formatNumber(data.t_abs)}`);
+    renderMath(calcOutputs.rAbs, `|r| = ${formatNumber(data.r_abs)}`);
+    renderMath(calcOutputs.T, `T = |t|^2 = ${formatNumber(data.T)}`);
+    renderMath(calcOutputs.R, `R = 1 - T = ${formatNumber(data.R)}`);
   }
 
   // 6. Konfigurasi dan Rendering Plotly.js
   function renderPlot(data) {
+    if (!plotContainer || !window.Plotly) return;
     const theme = getTheme();
     const palette =
       theme === "light"
@@ -266,7 +394,7 @@ document.addEventListener("DOMContentLoaded", () => {
       mode: "none",
       fill: "tozeroy",
       fillcolor: palette.barrierFill,
-      name: "Penghalang (V₀)",
+      name: "Penghalang (V0)",
       hoverinfo: "none",
     };
 
@@ -285,7 +413,7 @@ document.addEventListener("DOMContentLoaded", () => {
       hoverinfo: "none",
     };
 
-    // Trace 2: Amplop Probabilitas Kerapatan (|ψ|²)
+    // Trace 2: Amplop Probabilitas Kerapatan (|psi|^2)
     const tracePsiSq = {
       x: data.x,
       y: data.psi_sq,
@@ -299,7 +427,7 @@ document.addEventListener("DOMContentLoaded", () => {
       },
       fill: "tonexty",
       fillcolor: palette.psiFill,
-      name: "Amplop Probabilitas",
+      name: "Amplop Probabilitas (|psi|^2)",
     };
 
     // Trace 3: Gelombang Berjalan (Real Part of Psi)
@@ -326,7 +454,7 @@ document.addEventListener("DOMContentLoaded", () => {
         smoothing: 1.3,
       },
       hoverinfo: isEmbed ? "skip" : "x+y",
-      name: "Gelombang Re(Ψ)",
+      name: "Gelombang Re(Psi)",
     };
 
     // Konfigurasi Tata Letak Grafik
@@ -401,9 +529,11 @@ document.addEventListener("DOMContentLoaded", () => {
       ? [traceWave]
       : [traceV, traceE, tracePsiSq, traceWave];
 
+    const xLen = data.x.length;
     if (!plotInitialized) {
       Plotly.newPlot("plot-container", traces, layout, config);
       plotInitialized = true;
+      lastXLen = xLen;
 
       if (!plotEventsAttached) {
         plotContainer.on("plotly_relayout", (eventData) => {
@@ -439,18 +569,57 @@ document.addEventListener("DOMContentLoaded", () => {
         plotEventsAttached = true;
       }
     } else {
-      Plotly.react("plot-container", traces, layout, config);
+      if (lastXLen !== xLen) {
+        Plotly.react("plot-container", traces, layout, config);
+        lastXLen = xLen;
+        return;
+      }
+
+      if (isEmbed) {
+        Plotly.restyle(
+          "plot-container",
+          { x: [data.x], y: [wave_y] },
+          [0]
+        );
+      } else {
+        Plotly.restyle("plot-container", { x: [data.x], y: [data.V] }, [0]);
+        Plotly.restyle(
+          "plot-container",
+          { y: [Array(data.x.length).fill(data.E)] },
+          [1]
+        );
+        Plotly.restyle(
+          "plot-container",
+          { x: [data.x], y: [data.psi_sq] },
+          [2]
+        );
+        Plotly.restyle("plot-container", { x: [data.x], y: [wave_y] }, [3]);
+      }
     }
   }
 
   // 7. Loop Animasi Kuantum (requestAnimationFrame)
   function animateWave() {
+    if (!window.Plotly || !plotContainer) {
+      animationId = requestAnimationFrame(animateWave);
+      return;
+    }
     if (!simulationResult || !plotInitialized) {
       animationId = requestAnimationFrame(animateWave);
       return;
     }
 
     const data = simulationResult;
+    if (
+      !Array.isArray(data.x) ||
+      !Array.isArray(data.psi_real) ||
+      !Array.isArray(data.psi_imag) ||
+      data.x.length !== data.psi_real.length ||
+      data.x.length !== data.psi_imag.length
+    ) {
+      animationId = requestAnimationFrame(animateWave);
+      return;
+    }
     if (animationPaused) {
       animationId = requestAnimationFrame(animateWave);
       return;
@@ -471,8 +640,12 @@ document.addEventListener("DOMContentLoaded", () => {
       wave_y[i] = data.E + val; // Offset sesuai tingkat energi
     }
 
-    // Update hanya koordinat Y dari Trace ke-3 (Gelombang Re(Ψ))
-    Plotly.restyle("plot-container", { y: [wave_y] }, [isEmbed ? 0 : 3]);
+    // Update hanya koordinat Y dari Trace ke-3 (Gelombang Re(Psi))
+    try {
+      Plotly.restyle("plot-container", { y: [wave_y] }, [isEmbed ? 0 : 3]);
+    } catch (error) {
+      console.warn("Gagal update animasi gelombang:", error);
+    }
 
     // Lanjutkan loop
     animationId = requestAnimationFrame(animateWave);
@@ -486,4 +659,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   fetchSimulationData();
+  renderStaticFormulas();
+  ensureKatexReady();
 });

@@ -36,8 +36,13 @@ def simulate():
     # Jika E > V0, k2 riil. Jika E < V0, k2 imajiner (i*kappa)
     if E > V0:
         k2 = np.sqrt(E - V0) + 0j
+        kappa = 0.0
     else:
-        k2 = 1j * np.sqrt(V0 - E)
+        kappa = np.sqrt(V0 - E)
+        k2 = 1j * kappa
+
+    if np.abs(k2) < 1e-8:
+        k2 = 1e-8 + 0j
 
     # --- 2. Perhitungan Koefisien Transmisi dan Refleksi ---
     # Menggunakan metode pencocokan syarat batas (boundary matching)
@@ -147,9 +152,16 @@ def simulate():
             "psi_imag": psi_imag_scaled,
             "V": V_array.tolist(),
             "E": E,
+            "V0": V0,
             "T": T,
             "R": R,
             "L": L,
+            "k1": float(np.real(k1)),
+            "k2_real": float(np.real(k2)),
+            "k2_imag": float(np.imag(k2)),
+            "kappa": float(kappa),
+            "t_abs": float(np.abs(t)),
+            "r_abs": float(np.abs(r)),
         }
     )
 

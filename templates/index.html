@@ -22,6 +22,14 @@
             rel="stylesheet"
         />
         <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+        <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
+        />
+        <script
+            defer
+            src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"
+        ></script>
     </head>
     <body
         class="min-h-screen bg-slate-950 text-slate-100 {% if is_embed %}h-full overflow-hidden{% endif %}"
@@ -342,6 +350,51 @@
                                 <p id="info-text">
                                     Memuat kalkulasi mekanika kuantum...
                                 </p>
+                            </div>
+                        </div>
+
+                        <div
+                            class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6"
+                        >
+                            <h2
+                                class="text-lg font-semibold text-white"
+                                style="font-family: 'Space Grotesk', sans-serif"
+                            >
+                                Rumus & Langkah Perhitungan
+                            </h2>
+                            <div class="mt-5 space-y-4 text-sm text-slate-300">
+                                <div
+                                    class="rounded-2xl border border-slate-800 bg-slate-950/60 px-4 py-3"
+                                >
+                                    <p class="text-xs uppercase text-slate-400">
+                                        Rumus yang dipakai
+                                    </p>
+                                    <div class="mt-2 space-y-2 text-xs text-slate-200">
+                                        <div id="formula-k1"></div>
+                                        <div id="formula-k2"></div>
+                                        <div id="formula-denom"></div>
+                                        <div id="formula-t"></div>
+                                        <div id="formula-tr"></div>
+                                    </div>
+                                </div>
+                                <div
+                                    class="rounded-2xl border border-slate-800 bg-slate-950/60 px-4 py-3"
+                                >
+                                    <p class="text-xs uppercase text-slate-400">
+                                        Langkah perhitungan (nilai saat ini)
+                                    </p>
+                                    <div class="mt-2 space-y-2 text-xs text-slate-200">
+                                        <div id="calc-inputs"></div>
+                                        <div id="calc-case"></div>
+                                        <div id="calc-k1"></div>
+                                        <div id="calc-k2"></div>
+                                        <div id="calc-kappa"></div>
+                                        <div id="calc-t"></div>
+                                        <div id="calc-r"></div>
+                                        <div id="calc-T"></div>
+                                        <div id="calc-R"></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </section>
