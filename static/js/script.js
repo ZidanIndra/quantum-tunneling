@@ -1,6 +1,7 @@
 // Menunggu DOM ter-load penuh
 document.addEventListener("DOMContentLoaded", () => {
   const isEmbed = document.body.dataset.embed === "1";
+  const getTheme = () => document.documentElement.dataset.theme || "dark";
   // 1. Pemetaan Referensi Elemen UI
   const sliders = {
     E: document.getElementById("energy-slider"),
@@ -224,6 +225,39 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 6. Konfigurasi dan Rendering Plotly.js
   function renderPlot(data) {
+    const theme = getTheme();
+    const palette =
+      theme === "light"
+        ? {
+            barrierFill: "rgba(250, 204, 21, 0.35)",
+            energyLine: "#dc2626",
+            psiLine: "rgba(37, 99, 235, 0.45)",
+            psiFill: "rgba(59, 130, 246, 0.18)",
+            waveLine: "#1d4ed8",
+            text: "#0f172a",
+            muted: "#475569",
+            grid: "rgba(100, 116, 139, 0.25)",
+            axis: "rgba(100, 116, 139, 0.45)",
+            plotBg: "rgba(248, 250, 252, 0)",
+            paperBg: "rgba(248, 250, 252, 0)",
+            hoverBg: "rgba(255, 255, 255, 0.95)",
+            hoverText: "#0f172a",
+          }
+        : {
+            barrierFill: "rgba(241, 196, 15, 0.35)",
+            energyLine: "#e74c3c",
+            psiLine: "rgba(52, 152, 219, 0.4)",
+            psiFill: "rgba(52, 152, 219, 0.15)",
+            waveLine: "#2980b9",
+            text: "#e2e8f0",
+            muted: "#cbd5f5",
+            grid: "rgba(148, 163, 184, 0.18)",
+            axis: "rgba(148, 163, 184, 0.35)",
+            plotBg: "rgba(15, 23, 42, 0)",
+            paperBg: "rgba(15, 23, 42, 0)",
+            hoverBg: "rgba(15, 23, 42, 0.95)",
+            hoverText: "#e2e8f0",
+          };
     // Trace 0: Area Blok Penghalang Potensial
     const traceV = {
       x: data.x,
@@ -231,7 +265,7 @@ document.addEventListener("DOMContentLoaded", () => {
       type: "scatter",
       mode: "none",
       fill: "tozeroy",
-      fillcolor: "rgba(241, 196, 15, 0.35)", // Emas/kuning
+      fillcolor: palette.barrierFill,
       name: "Penghalang (V₀)",
       hoverinfo: "none",
     };
@@ -243,7 +277,7 @@ document.addEventListener("DOMContentLoaded", () => {
       type: "scatter",
       mode: "lines",
       line: {
-        color: "#e74c3c", // Merah
+        color: palette.energyLine,
         width: 2,
         dash: "dashdot",
       },
@@ -258,13 +292,13 @@ document.addEventListener("DOMContentLoaded", () => {
       type: "scatter",
       mode: "lines",
       line: {
-        color: "rgba(52, 152, 219, 0.4)", // Biru transparan
+        color: palette.psiLine,
         width: 1,
         shape: "spline",
         smoothing: 1.3,
       },
       fill: "tonexty",
-      fillcolor: "rgba(52, 152, 219, 0.15)", // Fill transparan
+      fillcolor: palette.psiFill,
       name: "Amplop Probabilitas",
     };
 
@@ -286,7 +320,7 @@ document.addEventListener("DOMContentLoaded", () => {
       type: "scatter",
       mode: "lines",
       line: {
-        color: "#2980b9", // Biru gelap solid
+        color: palette.waveLine,
         width: 2.5,
         shape: "spline",
         smoothing: 1.3,
@@ -297,13 +331,13 @@ document.addEventListener("DOMContentLoaded", () => {
     // Konfigurasi Tata Letak Grafik
     const axisBase = {
       zeroline: true,
-      zerolinecolor: "rgba(148, 163, 184, 0.35)",
+      zerolinecolor: palette.axis,
       showgrid: true,
-      gridcolor: "rgba(148, 163, 184, 0.18)",
-      linecolor: "rgba(148, 163, 184, 0.35)",
-      tickcolor: "rgba(148, 163, 184, 0.35)",
-      tickfont: { color: "#cbd5f5" },
-      titlefont: { color: "#cbd5f5" },
+      gridcolor: palette.grid,
+      linecolor: palette.axis,
+      tickcolor: palette.axis,
+      tickfont: { color: palette.muted },
+      titlefont: { color: palette.muted },
     };
 
     const layout = {
@@ -311,7 +345,7 @@ document.addEventListener("DOMContentLoaded", () => {
         text: isEmbed
           ? ""
           : "Simulasi Quantum Tunneling (Animasi Gelombang Berjalan)",
-        font: { size: 16, color: "#e2e8f0" },
+        font: { size: 16, color: palette.text },
       },
       xaxis: {
         title: "Posisi Ruang (x)",
@@ -338,17 +372,17 @@ document.addEventListener("DOMContentLoaded", () => {
         y: -0.15,
         x: 0.5,
         xanchor: "center",
-        font: { color: "#cbd5f5" },
+        font: { color: palette.muted },
       },
       dragmode: isEmbed ? false : "pan",
       uirevision: "view",
-      plot_bgcolor: "rgba(15, 23, 42, 0)",
-      paper_bgcolor: "rgba(15, 23, 42, 0)",
+      plot_bgcolor: palette.plotBg,
+      paper_bgcolor: palette.paperBg,
       hovermode: isEmbed ? false : "x",
       hoverlabel: {
-        bgcolor: "rgba(15, 23, 42, 0.95)",
-        bordercolor: "rgba(148, 163, 184, 0.4)",
-        font: { color: "#e2e8f0" },
+        bgcolor: palette.hoverBg,
+        bordercolor: palette.axis,
+        font: { color: palette.hoverText },
       },
     };
 
@@ -446,5 +480,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Eksekusi awal
+  document.addEventListener("themechange", () => {
+    if (simulationResult && plotInitialized) {
+      renderPlot(simulationResult);
+    }
+  });
+
   fetchSimulationData();
 });

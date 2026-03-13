@@ -4,7 +4,22 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Quantum Tunneling Lab</title>
+        <script>
+            (function () {
+                const key = "qt-theme";
+                const saved = localStorage.getItem(key);
+                const prefersDark =
+                    window.matchMedia &&
+                    window.matchMedia("(prefers-color-scheme: dark)").matches;
+                const theme = saved || (prefersDark ? "dark" : "light");
+                document.documentElement.dataset.theme = theme;
+            })();
+        </script>
         <script src="https://cdn.tailwindcss.com"></script>
+        <link
+            rel="stylesheet"
+            href="{{ url_for('static', filename='css/theme.css') }}"
+        />
         <link
             href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
             rel="stylesheet"
@@ -31,11 +46,32 @@
                             >Quantum Tunneling Lab</span
                         >
                     </div>
-                    <a
-                        href="/simulate"
-                        class="rounded-full border border-cyan-400/50 px-5 py-2 text-sm font-semibold text-cyan-200 transition hover:border-cyan-300 hover:text-white"
-                        >Mulai Simulasi</a
-                    >
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-semibold text-slate-400"
+                                >Terang</span
+                            >
+                            <label class="relative inline-flex cursor-pointer items-center">
+                                <input
+                                    type="checkbox"
+                                    class="sr-only"
+                                    data-theme-toggle
+                                    aria-label="Toggle tema"
+                                />
+                                <span class="theme-toggle-track">
+                                    <span class="theme-toggle-dot"></span>
+                                </span>
+                            </label>
+                            <span class="text-xs font-semibold text-slate-400"
+                                >Gelap</span
+                            >
+                        </div>
+                        <a
+                            href="/simulate"
+                            class="rounded-full border border-cyan-400/50 px-5 py-2 text-sm font-semibold text-cyan-200 transition hover:border-cyan-300 hover:text-white"
+                            >Mulai Simulasi</a
+                        >
+                    </div>
                 </nav>
             </header>
 
@@ -243,5 +279,6 @@
                 .then((data) => updatePreviewValues(data))
                 .catch(() => updatePreviewValues({ ...previewData, T: 0 }));
         </script>
+        <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     </body>
 </html>
