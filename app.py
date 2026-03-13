@@ -11,7 +11,8 @@ def index():
 
 @app.route("/simulate")
 def simulate_page():
-    return render_template("index.html")
+    embed = request.args.get("embed") == "1"
+    return render_template("index.html", embed=embed)
 
 
 @app.route("/api/simulate", methods=["POST"])
