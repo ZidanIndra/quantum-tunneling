@@ -105,13 +105,16 @@ document.addEventListener("DOMContentLoaded", () => {
     inputs[key].addEventListener("change", (e) => {
       let val = parseFloat(e.target.value);
       const min = parseFloat(e.target.min);
-      const max = parseFloat(e.target.max);
+      const sliderMax = parseFloat(sliders[key].max);
 
       // Validasi batas minimal & maksimal
-      if (val < min) val = min;
-      if (val > max) val = max;
+      if (Number.isFinite(min) && val < min) val = min;
+      if (Number.isFinite(sliderMax) && val > sliderMax) {
+        sliders[key].value = sliderMax;
+      } else {
+        sliders[key].value = val;
+      }
 
-      sliders[key].value = val;
       e.target.value = val;
       currentData[key] = val;
       fetchSimulationData();
@@ -192,10 +195,8 @@ document.addEventListener("DOMContentLoaded", () => {
     viewInputs[key].addEventListener("change", (e) => {
       let val = parseFloat(e.target.value);
       const min = parseFloat(e.target.min);
-      const max = parseFloat(e.target.max);
 
-      if (val < min) val = min;
-      if (val > max) val = max;
+      if (Number.isFinite(min) && val < min) val = min;
 
       syncViewControl(key, val);
     });
