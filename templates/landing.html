@@ -140,7 +140,7 @@
                                     Tinggi Penghalang (V0)
                                 </p>
                                 <p class="mt-1 text-base font-semibold text-white">
-                                    <span id="preview-v0">2.0</span> eV
+                                    <span id="preview-v0">∞</span> eV
                                 </p>
                             </div>
                             <div class="rounded-xl border border-slate-800 bg-slate-900 px-3 py-2">
@@ -246,7 +246,7 @@
             </main>
         </div>
         <script>
-            const previewData = { E: 1.0, V0: 2.0, L: 1.0 };
+            const previewData = { E: 1.0, L: 1.0 };
 
             function updatePreviewValues(data) {
                 const eEl = document.getElementById("preview-e");
@@ -255,7 +255,9 @@
                 const tEl = document.getElementById("preview-t");
 
                 if (eEl) eEl.textContent = data.E.toFixed(1);
-                if (v0El) v0El.textContent = data.V0.toFixed(1);
+                if (v0El) {
+                    v0El.textContent = data.V0_infinite ? "∞" : data.V0.toFixed(1);
+                }
                 if (lEl) lEl.textContent = data.L.toFixed(1);
                 if (tEl) tEl.textContent = data.T.toFixed(2);
             }

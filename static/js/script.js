@@ -105,16 +105,13 @@ document.addEventListener("DOMContentLoaded", () => {
     inputs[key].addEventListener("change", (e) => {
       let val = parseFloat(e.target.value);
       const min = parseFloat(e.target.min);
-      const sliderMax = parseFloat(sliders[key].max);
+      const max = parseFloat(e.target.max);
 
       // Validasi batas minimal & maksimal
-      if (Number.isFinite(min) && val < min) val = min;
-      if (Number.isFinite(sliderMax) && val > sliderMax) {
-        sliders[key].value = sliderMax;
-      } else {
-        sliders[key].value = val;
-      }
+      if (val < min) val = min;
+      if (val > max) val = max;
 
+      sliders[key].value = val;
       e.target.value = val;
       currentData[key] = val;
       fetchSimulationData();
@@ -195,8 +192,10 @@ document.addEventListener("DOMContentLoaded", () => {
     viewInputs[key].addEventListener("change", (e) => {
       let val = parseFloat(e.target.value);
       const min = parseFloat(e.target.min);
+      const max = parseFloat(e.target.max);
 
-      if (Number.isFinite(min) && val < min) val = min;
+      if (val < min) val = min;
+      if (val > max) val = max;
 
       syncViewControl(key, val);
     });
@@ -399,10 +398,10 @@ document.addEventListener("DOMContentLoaded", () => {
       hoverinfo: "none",
     };
 
-    // Trace 1: Garis Energi Kinetik Partikel (E)
+    // Trace 1: Garis Referensi Energi (E = 0)
     const traceE = {
       x: data.x,
-      y: Array(data.x.length).fill(data.E),
+      y: Array(data.x.length).fill(0),
       type: "scatter",
       mode: "lines",
       line: {
@@ -410,7 +409,7 @@ document.addEventListener("DOMContentLoaded", () => {
         width: 2,
         dash: "dashdot",
       },
-      name: "Tingkat Energi (E)",
+      name: "Garis Energi (0)",
       hoverinfo: "none",
     };
 
@@ -440,7 +439,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let wave_y = data.x.map((_, i) => {
       let val = data.psi_real[i] * cos_p + data.psi_imag[i] * sin_p;
-      return data.E + val;
+      return val;
     });
 
     const traceWave = {
@@ -586,7 +585,7 @@ document.addEventListener("DOMContentLoaded", () => {
         Plotly.restyle("plot-container", { x: [data.x], y: [data.V] }, [0]);
         Plotly.restyle(
           "plot-container",
-          { y: [Array(data.x.length).fill(data.E)] },
+          { y: [Array(data.x.length).fill(0)] },
           [1]
         );
         Plotly.restyle(
@@ -638,7 +637,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // Re(Psi(x,t)) = Re(psi(x) * exp(-iEt))
       // = psi_real * cos(Et) + psi_imag * sin(Et)
       let val = data.psi_real[i] * cos_p + data.psi_imag[i] * sin_p;
-      wave_y[i] = data.E + val; // Offset sesuai tingkat energi
+      wave_y[i] = val; // Tanpa offset energi
     }
 
     // Update hanya koordinat Y dari Trace ke-3 (Gelombang Re(Psi))

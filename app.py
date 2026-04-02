@@ -26,7 +26,7 @@ def simulate():
     # --- 1. Persiapan Kuantitas Fisika ---
     # Menggunakan satuan disederhanakan: hbar^2 / 2m = 1
 
-    if E == 0:
+    if E <= 0:
         E = 1e-5  # Menghindari pembagian dengan nol
 
     # Bilangan gelombang di wilayah 1 (x < 0)
@@ -34,11 +34,10 @@ def simulate():
 
     # Bilangan gelombang di wilayah 2 (dalam penghalang, 0 <= x <= L)
     # Jika E > V0, k2 riil. Jika E < V0, k2 imajiner (i*kappa)
+    kappa = np.sqrt(abs(V0 - E))
     if E > V0:
         k2 = np.sqrt(E - V0) + 0j
-        kappa = 0.0
     else:
-        kappa = np.sqrt(V0 - E)
         k2 = 1j * kappa
 
     if np.abs(k2) < 1e-8:
@@ -135,9 +134,9 @@ def simulate():
     V_array = np.zeros_like(x_all)
     V_array[(x_all >= 0) & (x_all <= L)] = V0
 
-    # Skalakan tinggi gelombang agar pas dilihat (ditumpuk di garis energi E)
-    scale_factor = max(1.0, V0) * 0.3
-    psi_plot = E + psi_sq * scale_factor
+    # Skalakan tinggi gelombang agar pas dilihat (tanpa offset energi)
+    scale_factor = max(1.0, max(V0, E)) * 0.3
+    psi_plot = psi_sq * scale_factor
 
     # Skalakan komponen kompleks untuk animasi gelombang Real(Psi) berjalan
     scale_factor_wave = scale_factor * 0.8
