@@ -23,6 +23,11 @@ document.addEventListener("DOMContentLoaded", () => {
     info: document.getElementById("info-text"),
   };
 
+  const v0Controls = {
+    infiniteBtn: document.getElementById("v0-infinite-btn"),
+    infiniteStatus: document.getElementById("v0-infinite-status"),
+  };
+
   const calcOutputs = {
     inputs: document.getElementById("calc-inputs"),
     caseText: document.getElementById("calc-case"),
@@ -64,15 +69,19 @@ document.addEventListener("DOMContentLoaded", () => {
     xRange: [...baseRange.x],
     yRange: [...baseRange.y],
   };
+  let lastFiniteYRange = [...baseRange.y];
+  let lastInfiniteState = false;
 
   // 2. State Aplikasi Dasar
   let currentData = {
     E: 1.0,
     V0: 2.0,
+    V0_infinite: false,
     L: 1.0,
     x_min: viewState.xRange[0],
     x_max: viewState.xRange[1],
   };
+  let v0Infinite = false;
   let plotInitialized = false; // Flag untuk Plotly
   let simulationResult = null; // Menyimpan hasil komputasi dari backend
   let animationId = null; // ID untuk requestAnimationFrame
@@ -90,6 +99,41 @@ document.addEventListener("DOMContentLoaded", () => {
     inputs[id].value = value;
     currentData[id] = parseFloat(value);
     fetchSimulationData();
+  }
+
+  function setV0InfiniteState(next, shouldFetch = true) {
+    v0Infinite = next;
+    currentData.V0_infinite = v0Infinite;
+
+    if (sliders.V0) {
+      sliders.V0.disabled = v0Infinite;
+      sliders.V0.classList.toggle("opacity-50", v0Infinite);
+    }
+    if (inputs.V0) {
+      inputs.V0.disabled = v0Infinite;
+      inputs.V0.classList.toggle("opacity-50", v0Infinite);
+    }
+    if (v0Controls.infiniteBtn) {
+      v0Controls.infiniteBtn.setAttribute(
+        "aria-pressed",
+        v0Infinite ? "true" : "false"
+      );
+      v0Controls.infiniteBtn.classList.toggle(
+        "border-cyan-400",
+        v0Infinite
+      );
+      v0Controls.infiniteBtn.classList.toggle("text-cyan-200", v0Infinite);
+      v0Controls.infiniteBtn.innerText = v0Infinite ? "∞ Aktif" : "∞";
+    }
+    if (v0Controls.infiniteStatus) {
+      v0Controls.infiniteStatus.innerText = v0Infinite
+        ? "Penghalang tak hingga aktif. V0 dikunci."
+        : "Atur nilai V0. Klik tombol ∞ untuk penghalang tak hingga.";
+    }
+
+    if (shouldFetch) {
+      fetchSimulationData();
+    }
   }
 
   Object.keys(sliders).forEach((key) => {
@@ -121,9 +165,16 @@ document.addEventListener("DOMContentLoaded", () => {
   // Event Klik Reset Button
   if (btnReset) {
     btnReset.addEventListener("click", () => {
+      setV0InfiniteState(false, false);
       syncControls("E", 1.0);
       syncControls("V0", 2.0);
       syncControls("L", 1.0);
+    });
+  }
+
+  if (v0Controls.infiniteBtn) {
+    v0Controls.infiniteBtn.addEventListener("click", () => {
+      setV0InfiniteState(!v0Infinite);
     });
   }
 
@@ -143,6 +194,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function getAnimTime() {
     return animationPaused ? pausedAt : performance.now() - pauseOffset;
+  }
+
+  function getMaxValue(values) {
+    let maxVal = -Infinity;
+    for (let i = 0; i < values.length; i++) {
+      const v = values[i];
+      if (v > maxVal) maxVal = v;
+    }
+    return maxVal;
   }
 
   function applyZoom() {
@@ -269,6 +329,9 @@ document.addEventListener("DOMContentLoaded", () => {
     // A. Panggil fungsi render Plotly (Struktur dasar grafik)
     renderPlot(data);
 
+    const v0InfiniteFlag = data.V0_infinite === true;
+    const v0Label = v0InfiniteFlag ? "∞" : data.V0.toFixed(1);
+
     // B. Update Persentase Output Analitik
     const T_percent = (data.T * 100).toFixed(1);
     const R_percent = (data.R * 100).toFixed(1);
@@ -281,20 +344,18 @@ document.addEventListener("DOMContentLoaded", () => {
     outputs.R_bar.style.width = `${R_percent}%`;
 
     // C. Update Dynamic Tooltip (Edukasi Fisika)
-    if (data.E < data.V0) {
+    if (v0InfiniteFlag) {
+      outputs.info.innerHTML = `<strong>Penghalang Tak Hingga:</strong> V<sub>0</sub>=∞, partikel selalu terpantul (T=0%, R=100%). Gelombang hanya berada di sisi kiri penghalang.`;
+    } else if (data.E < data.V0) {
       outputs.info.innerHTML = `<strong>Kasus Kuantum (Tunneling):</strong> Energi partikel (E=${data.E.toFixed(
         1
-      )}) lebih rendah dari Tinggi Penghalang (V<sub>0</sub>=${data.V0.toFixed(
-        1
-      )}). Secara klasik partikel akan terpantul, namun mekanika kuantum membuktikan ada <strong>${T_percent}%</strong> probabilitas gelombang dapat menembus penghalang.`;
+      )}) lebih rendah dari Tinggi Penghalang (V<sub>0</sub>=${v0Label}). Secara klasik partikel akan terpantul, namun mekanika kuantum membuktikan ada <strong>${T_percent}%</strong> probabilitas gelombang dapat menembus penghalang.`;
     } else if (data.E > data.V0) {
       outputs.info.innerHTML = `<strong>Energi Ekstra:</strong> Energi partikel (E=${data.E.toFixed(
         1
-      )}) melebihi Penghalang (V<sub>0</sub>=${data.V0.toFixed(
-        1
-      )}). Secara klasik 100% tembus, namun secara kuantum <strong>${R_percent}%</strong> gelombang terpantul akibat perubahan mendadak pada medan potensial.`;
+      )}) melebihi Penghalang (V<sub>0</sub>=${v0Label}). Secara klasik 100% tembus, namun secara kuantum <strong>${R_percent}%</strong> gelombang terpantul akibat perubahan mendadak pada medan potensial.`;
     } else {
-      outputs.info.innerHTML = `Energi partikel (E) sama dengan tinggi penghalang (V<sub>0</sub>). Keadaan transisi kuantum.`;
+      outputs.info.innerHTML = `Energi partikel (E) sama dengan tinggi penghalang (V<sub>0</sub>=${v0Label}). Keadaan transisi kuantum.`;
     }
 
     // D. Update langkah perhitungan
@@ -304,12 +365,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const k2Real = typeof data.k2_real === "number" ? data.k2_real : 0;
     const k2Imag = typeof data.k2_imag === "number" ? data.k2_imag : 0;
 
-    const inputTex = `E=${data.E.toFixed(2)},\\; V_0=${data.V0.toFixed(
-      2
-    )},\\; L=${data.L.toFixed(2)}`;
+    const inputTex = v0InfiniteFlag
+      ? `E=${data.E.toFixed(2)},\\; V_0=\\infty,\\; L=${data.L.toFixed(2)}`
+      : `E=${data.E.toFixed(2)},\\; V_0=${data.V0.toFixed(
+          2
+        )},\\; L=${data.L.toFixed(2)}`;
     renderMath(calcOutputs.inputs, inputTex);
 
-    if (data.E < data.V0) {
+    if (v0InfiniteFlag) {
+      renderMath(calcOutputs.caseText, "\\text{Kasus: } V_0 = \\infty");
+    } else if (data.E < data.V0) {
       renderMath(calcOutputs.caseText, "\\text{Kasus: } E < V_0");
     } else if (data.E > data.V0) {
       renderMath(calcOutputs.caseText, "\\text{Kasus: } E > V_0");
@@ -322,7 +387,9 @@ document.addEventListener("DOMContentLoaded", () => {
       `k_1 = \\sqrt{E} = ${formatNumber(data.k1)}`
     );
 
-    if (data.E < data.V0) {
+    if (v0InfiniteFlag) {
+      renderMath(calcOutputs.k2, "k_2 = i\\infty");
+    } else if (data.E < data.V0) {
       renderMath(
         calcOutputs.k2,
         `k_2 = i\\sqrt{V_0 - E} = i\\sqrt{${data.V0.toFixed(2)} - ${data.E.toFixed(
@@ -340,10 +407,14 @@ document.addEventListener("DOMContentLoaded", () => {
       renderMath(calcOutputs.k2, "k_2 = 0");
     }
 
-    renderMath(
-      calcOutputs.kappa,
-      `\\kappa = \\sqrt{|V_0 - E|} = ${formatNumber(data.kappa)}`
-    );
+    if (v0InfiniteFlag) {
+      renderMath(calcOutputs.kappa, "\\kappa = \\infty");
+    } else {
+      renderMath(
+        calcOutputs.kappa,
+        `\\kappa = \\sqrt{|V_0 - E|} = ${formatNumber(data.kappa)}`
+      );
+    }
     renderMath(calcOutputs.tAbs, `|t| = ${formatNumber(data.t_abs)}`);
     renderMath(calcOutputs.rAbs, `|r| = ${formatNumber(data.r_abs)}`);
     renderMath(calcOutputs.T, `T = |t|^2 = ${formatNumber(data.T)}`);
@@ -354,6 +425,19 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderPlot(data) {
     if (!plotContainer || !window.Plotly) return;
     const theme = getTheme();
+    const isInfiniteBarrier = data.V0_infinite === true;
+    if (!isInfiniteBarrier) {
+      if (lastInfiniteState) {
+        viewState.yRange = [...lastFiniteYRange];
+      }
+      lastFiniteYRange = [...viewState.yRange];
+    } else {
+      const maxV =
+        typeof data.V_display === "number" ? data.V_display : getMaxValue(data.V);
+      const minY = -maxV * 0.35;
+      viewState.yRange = [minY, maxV];
+    }
+    lastInfiniteState = isInfiniteBarrier;
     const palette =
       theme === "light"
         ? {
@@ -485,18 +569,19 @@ document.addEventListener("DOMContentLoaded", () => {
         showticklabels: !isEmbed,
         ticks: isEmbed ? "" : "outside",
         title: isEmbed ? "" : "Posisi Ruang (x)",
-        fixedrange: isEmbed,
+        fixedrange: isEmbed || isInfiniteBarrier,
       },
       yaxis: {
         title: "Tingkat Energi & Amplitudo",
         range: viewState.yRange,
+        autorange: false,
         ...axisBase,
         zeroline: !isEmbed,
         showline: !isEmbed,
         showticklabels: !isEmbed,
         ticks: isEmbed ? "" : "outside",
         title: isEmbed ? "" : "Tingkat Energi & Amplitudo",
-        fixedrange: isEmbed,
+        fixedrange: isEmbed || isInfiniteBarrier,
       },
       margin: { t: isEmbed ? 20 : 50, l: isEmbed ? 20 : 60, r: 20, b: isEmbed ? 20 : 60 },
       showlegend: !isEmbed,
@@ -507,7 +592,7 @@ document.addEventListener("DOMContentLoaded", () => {
         xanchor: "center",
         font: { color: palette.muted },
       },
-      dragmode: isEmbed ? false : "pan",
+      dragmode: isEmbed || isInfiniteBarrier ? false : "pan",
       uirevision: "view",
       plot_bgcolor: palette.plotBg,
       paper_bgcolor: palette.paperBg,
@@ -537,27 +622,35 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (!plotEventsAttached) {
         plotContainer.on("plotly_relayout", (eventData) => {
+          const isInfinite = simulationResult && simulationResult.V0_infinite;
           const x0 = eventData["xaxis.range[0]"];
           const x1 = eventData["xaxis.range[1]"];
           const y0 = eventData["yaxis.range[0]"];
           const y1 = eventData["yaxis.range[1]"];
 
-          if (x0 !== undefined && x1 !== undefined) {
+          if (x0 !== undefined && x1 !== undefined && !isInfinite) {
             viewState.xRange = [x0, x1];
             currentData.x_min = x0;
             currentData.x_max = x1;
           }
-          if (y0 !== undefined && y1 !== undefined) {
+          if (
+            y0 !== undefined &&
+            y1 !== undefined &&
+            !isInfinite
+          ) {
             viewState.yRange = [y0, y1];
           }
 
-          if (eventData["xaxis.autorange"] || eventData["yaxis.autorange"]) {
+          if (
+            (eventData["xaxis.autorange"] || eventData["yaxis.autorange"]) &&
+            !isInfinite
+          ) {
             viewState.xRange = [...baseRange.x];
             viewState.yRange = [...baseRange.y];
             applyZoom();
           }
 
-          if (x0 !== undefined && x1 !== undefined) {
+          if (x0 !== undefined && x1 !== undefined && !isInfinite) {
             if (relayoutTimer) {
               clearTimeout(relayoutTimer);
             }

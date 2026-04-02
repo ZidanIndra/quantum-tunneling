@@ -21,6 +21,7 @@ def simulate():
     # Parameter default dari frontend
     E = float(data.get("E", 1.0))
     V0 = float(data.get("V0", 2.0))
+    is_infinite_barrier = bool(data.get("V0_infinite", False))
     L = float(data.get("L", 1.0))
 
     # --- 1. Persiapan Kuantitas Fisika ---
@@ -44,28 +45,36 @@ def simulate():
         k2 = 1e-8 + 0j
 
     # --- 2. Perhitungan Koefisien Transmisi dan Refleksi ---
-    # Menggunakan metode pencocokan syarat batas (boundary matching)
+    if is_infinite_barrier:
+        # Penghalang tak hingga -> transmisi ~ 0, refleksi ~ 1
+        t = 0.0 + 0.0j
+        r = -1.0 + 0.0j
+        A = 0.0 + 0.0j
+        B = 0.0 + 0.0j
+        T = 0.0
+        R = 1.0
+    else:
+        # Menggunakan metode pencocokan syarat batas (boundary matching)
+        # Denominator umum
+        denom = (k1 + k2) ** 2 * np.exp(-1j * k2 * L) - (k1 - k2) ** 2 * np.exp(1j * k2 * L)
 
-    # Denominator umum
-    denom = (k1 + k2) ** 2 * np.exp(-1j * k2 * L) - (k1 - k2) ** 2 * np.exp(1j * k2 * L)
+        # Amplitudo Transmisi (t)
+        t = (4 * k1 * k2 * np.exp(-1j * k1 * L)) / denom
 
-    # Amplitudo Transmisi (t)
-    t = (4 * k1 * k2 * np.exp(-1j * k1 * L)) / denom
+        # Amplitudo Refleksi (r)
+        num_r = (k1**2 - k2**2) * (np.exp(-1j * k2 * L) - np.exp(1j * k2 * L))
+        r = num_r / denom
 
-    # Amplitudo Refleksi (r)
-    num_r = (k1**2 - k2**2) * (np.exp(-1j * k2 * L) - np.exp(1j * k2 * L))
-    r = num_r / denom
+        # Amplitudo di dalam penghalang (A dan B)
+        A = 0.5 * (1 + k1 / k2) * t * np.exp(1j * (k1 - k2) * L)
+        B = 0.5 * (1 - k1 / k2) * t * np.exp(1j * (k1 + k2) * L)
 
-    # Amplitudo di dalam penghalang (A dan B)
-    A = 0.5 * (1 + k1 / k2) * t * np.exp(1j * (k1 - k2) * L)
-    B = 0.5 * (1 - k1 / k2) * t * np.exp(1j * (k1 + k2) * L)
+        # Probabilitas Fisis
+        T = np.abs(t) ** 2  # Koefisien Transmisi
 
-    # Probabilitas Fisis
-    T = np.abs(t) ** 2  # Koefisien Transmisi
-
-    # Menghindari error floating point
-    T = min(1.0, max(0.0, float(T)))
-    R = 1.0 - T  # Koefisien Refleksi
+        # Menghindari error floating point
+        T = min(1.0, max(0.0, float(T)))
+        R = 1.0 - T  # Koefisien Refleksi
 
     # --- 3. Penyusunan Array Fungsi Gelombang untuk Visualisasi ---
     x_min = float(data.get("x_min", -5.0))
@@ -110,8 +119,12 @@ def simulate():
 
     # Menghitung persamaan fungsi gelombang di setiap wilayah
     psi1 = np.exp(1j * k1 * x1) + r * np.exp(-1j * k1 * x1)
-    psi2 = A * np.exp(1j * k2 * x2) + B * np.exp(-1j * k2 * x2)
-    psi3 = t * np.exp(1j * k1 * x3)
+    if is_infinite_barrier:
+        psi2 = np.zeros_like(x2, dtype=complex)
+        psi3 = np.zeros_like(x3, dtype=complex)
+    else:
+        psi2 = A * np.exp(1j * k2 * x2) + B * np.exp(-1j * k2 * x2)
+        psi3 = t * np.exp(1j * k1 * x3)
 
     # Menggabungkan array ruang dan probabilitas kerapatan |psi|^2
     x_segments = []
@@ -132,16 +145,15 @@ def simulate():
 
     # --- 4. Fungsi Potensial Background ---
     V_array = np.zeros_like(x_all)
-    V_array[(x_all >= 0) & (x_all <= L)] = V0
+    V_plot = 100.0 if is_infinite_barrier else V0
+    V_array[(x_all >= 0) & (x_all <= L)] = V_plot
 
-    # Skalakan tinggi gelombang agar pas dilihat (tanpa offset energi)
-    scale_factor = max(1.0, max(V0, E)) * 0.3
-    psi_plot = psi_sq * scale_factor
+    # Amplop probabilitas fisik (|psi|^2) tanpa skala bergantung V0/E
+    psi_plot = psi_sq
 
-    # Skalakan komponen kompleks untuk animasi gelombang Real(Psi) berjalan
-    scale_factor_wave = scale_factor * 0.8
-    psi_real_scaled = (np.real(psi_all) * scale_factor_wave).tolist()
-    psi_imag_scaled = (np.imag(psi_all) * scale_factor_wave).tolist()
+    # Komponen kompleks untuk animasi gelombang Real(Psi) berjalan
+    psi_real_scaled = (np.real(psi_all)).tolist()
+    psi_imag_scaled = (np.imag(psi_all)).tolist()
 
     return jsonify(
         {
@@ -150,8 +162,10 @@ def simulate():
             "psi_real": psi_real_scaled,
             "psi_imag": psi_imag_scaled,
             "V": V_array.tolist(),
+            "V_display": V_plot,
             "E": E,
             "V0": V0,
+            "V0_infinite": is_infinite_barrier,
             "T": T,
             "R": R,
             "L": L,
