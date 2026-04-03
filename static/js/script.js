@@ -714,11 +714,8 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } else {
       if (lastXLen !== xLen) {
-        Plotly.react("plot-container", traces, layout, config);
         lastXLen = xLen;
-        return;
       }
-
       if (isEmbed) {
         Plotly.restyle(
           "plot-container",
