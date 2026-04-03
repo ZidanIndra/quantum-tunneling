@@ -26,6 +26,9 @@ def simulate():
 
     # --- 1. Persiapan Kuantitas Fisika ---
     # Menggunakan satuan disederhanakan: hbar^2 / 2m = 1
+    if is_infinite_barrier:
+        # Pseudo-infinity agar T sangat kecil tanpa overflow di exp()
+        V0 = 100.0
 
     if E <= 0:
         E = 1e-5  # Menghindari pembagian dengan nol
@@ -45,36 +48,27 @@ def simulate():
         k2 = 1e-8 + 0j
 
     # --- 2. Perhitungan Koefisien Transmisi dan Refleksi ---
-    if is_infinite_barrier:
-        # Penghalang tak hingga -> transmisi ~ 0, refleksi ~ 1
-        t = 0.0 + 0.0j
-        r = -1.0 + 0.0j
-        A = 0.0 + 0.0j
-        B = 0.0 + 0.0j
-        T = 0.0
-        R = 1.0
-    else:
-        # Menggunakan metode pencocokan syarat batas (boundary matching)
-        # Denominator umum
-        denom = (k1 + k2) ** 2 * np.exp(-1j * k2 * L) - (k1 - k2) ** 2 * np.exp(1j * k2 * L)
+    # Menggunakan metode pencocokan syarat batas (boundary matching)
+    # Denominator umum
+    denom = (k1 + k2) ** 2 * np.exp(-1j * k2 * L) - (k1 - k2) ** 2 * np.exp(1j * k2 * L)
 
-        # Amplitudo Transmisi (t)
-        t = (4 * k1 * k2 * np.exp(-1j * k1 * L)) / denom
+    # Amplitudo Transmisi (t)
+    t = (4 * k1 * k2 * np.exp(-1j * k1 * L)) / denom
 
-        # Amplitudo Refleksi (r)
-        num_r = (k1**2 - k2**2) * (np.exp(-1j * k2 * L) - np.exp(1j * k2 * L))
-        r = num_r / denom
+    # Amplitudo Refleksi (r)
+    num_r = (k1**2 - k2**2) * (np.exp(-1j * k2 * L) - np.exp(1j * k2 * L))
+    r = num_r / denom
 
-        # Amplitudo di dalam penghalang (A dan B)
-        A = 0.5 * (1 + k1 / k2) * t * np.exp(1j * (k1 - k2) * L)
-        B = 0.5 * (1 - k1 / k2) * t * np.exp(1j * (k1 + k2) * L)
+    # Amplitudo di dalam penghalang (A dan B)
+    A = 0.5 * (1 + k1 / k2) * t * np.exp(1j * (k1 - k2) * L)
+    B = 0.5 * (1 - k1 / k2) * t * np.exp(1j * (k1 + k2) * L)
 
-        # Probabilitas Fisis
-        T = np.abs(t) ** 2  # Koefisien Transmisi
+    # Probabilitas Fisis
+    T = np.abs(t) ** 2  # Koefisien Transmisi
 
-        # Menghindari error floating point
-        T = min(1.0, max(0.0, float(T)))
-        R = 1.0 - T  # Koefisien Refleksi
+    # Menghindari error floating point
+    T = min(1.0, max(0.0, float(T)))
+    R = 1.0 - T  # Koefisien Refleksi
 
     # --- 3. Penyusunan Array Fungsi Gelombang untuk Visualisasi ---
     x_min = float(data.get("x_min", -5.0))
@@ -119,12 +113,8 @@ def simulate():
 
     # Menghitung persamaan fungsi gelombang di setiap wilayah
     psi1 = np.exp(1j * k1 * x1) + r * np.exp(-1j * k1 * x1)
-    if is_infinite_barrier:
-        psi2 = np.zeros_like(x2, dtype=complex)
-        psi3 = np.zeros_like(x3, dtype=complex)
-    else:
-        psi2 = A * np.exp(1j * k2 * x2) + B * np.exp(-1j * k2 * x2)
-        psi3 = t * np.exp(1j * k1 * x3)
+    psi2 = A * np.exp(1j * k2 * x2) + B * np.exp(-1j * k2 * x2)
+    psi3 = t * np.exp(1j * k1 * x3)
 
     # Menggabungkan array ruang dan probabilitas kerapatan |psi|^2
     x_segments = []

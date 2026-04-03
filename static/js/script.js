@@ -91,6 +91,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let pausedAt = 0;
   let relayoutTimer = null;
   let lastXLen = null;
+  let infiniteAmplify = 1.0;
 
   // 3. Logika Event Listeners
   // Fungsi untuk menyinkronkan UI Slider & Input Box
@@ -203,6 +204,41 @@ document.addEventListener("DOMContentLoaded", () => {
       if (v > maxVal) maxVal = v;
     }
     return maxVal;
+  }
+
+  function computeInfiniteAmplify(data) {
+    if (!data || data.V0_infinite !== true) return 1.0;
+    if (
+      !Array.isArray(data.x) ||
+      !Array.isArray(data.psi_real) ||
+      !Array.isArray(data.psi_imag) ||
+      data.x.length !== data.psi_real.length ||
+      data.x.length !== data.psi_imag.length
+    ) {
+      return 1.0;
+    }
+
+    const L = typeof data.L === "number" ? data.L : 0;
+    let maxLeft = 0;
+    let maxRight = 0;
+    for (let i = 0; i < data.x.length; i++) {
+      const re = data.psi_real[i];
+      const im = data.psi_imag[i];
+      const mag = Math.hypot(re, im);
+      if (data.x[i] > L) {
+        if (mag > maxRight) maxRight = mag;
+      } else if (mag > maxLeft) {
+        maxLeft = mag;
+      }
+    }
+
+    if (maxRight <= 0 || !Number.isFinite(maxRight)) return 1.0;
+
+    const target = Math.max(1e-6, maxLeft * 0.25);
+    let factor = target / maxRight;
+    if (!Number.isFinite(factor) || factor <= 0) return 1.0;
+    factor = Math.min(Math.max(factor, 1.0), 1e6);
+    return factor;
   }
 
   function applyZoom() {
@@ -326,6 +362,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 5. Update UI dan Konten Informasi
   function updateUI(data) {
+    infiniteAmplify = computeInfiniteAmplify(data);
     // A. Panggil fungsi render Plotly (Struktur dasar grafik)
     renderPlot(data);
 
@@ -333,15 +370,22 @@ document.addEventListener("DOMContentLoaded", () => {
     const v0Label = v0InfiniteFlag ? "∞" : data.V0.toFixed(1);
 
     // B. Update Persentase Output Analitik
-    const T_percent = (data.T * 100).toFixed(1);
-    const R_percent = (data.R * 100).toFixed(1);
+    const T_raw_percent = data.T * 100;
+    const R_raw_percent = data.R * 100;
+    const useTinyFormat = v0InfiniteFlag === true;
+    const T_percent = useTinyFormat
+      ? T_raw_percent.toFixed(9)
+      : T_raw_percent.toFixed(1);
+    const R_percent = useTinyFormat
+      ? (100 - T_raw_percent).toFixed(9)
+      : R_raw_percent.toFixed(1);
 
     outputs.T_text.innerText = `${T_percent}%`;
     outputs.R_text.innerText = `${R_percent}%`;
 
     // Animasi bar width CSS
-    outputs.T_bar.style.width = `${T_percent}%`;
-    outputs.R_bar.style.width = `${R_percent}%`;
+    outputs.T_bar.style.width = `${T_raw_percent}%`;
+    outputs.R_bar.style.width = `${R_raw_percent}%`;
 
     // C. Update Dynamic Tooltip (Edukasi Fisika)
     if (v0InfiniteFlag) {
@@ -360,6 +404,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // D. Update langkah perhitungan
     const formatNumber = (value, digits = 3) =>
+      Number.isFinite(value) ? value.toFixed(digits) : "-";
+    const formatFixed = (value, digits = 9) =>
       Number.isFinite(value) ? value.toFixed(digits) : "-";
 
     const k2Real = typeof data.k2_real === "number" ? data.k2_real : 0;
@@ -415,10 +461,11 @@ document.addEventListener("DOMContentLoaded", () => {
         `\\kappa = \\sqrt{|V_0 - E|} = ${formatNumber(data.kappa)}`
       );
     }
+    const formatTR = v0InfiniteFlag ? formatFixed : formatNumber;
     renderMath(calcOutputs.tAbs, `|t| = ${formatNumber(data.t_abs)}`);
     renderMath(calcOutputs.rAbs, `|r| = ${formatNumber(data.r_abs)}`);
-    renderMath(calcOutputs.T, `T = |t|^2 = ${formatNumber(data.T)}`);
-    renderMath(calcOutputs.R, `R = 1 - T = ${formatNumber(data.R)}`);
+    renderMath(calcOutputs.T, `T = |t|^2 = ${formatTR(data.T)}`);
+    renderMath(calcOutputs.R, `R = 1 - T = ${formatTR(data.R)}`);
   }
 
   // 6. Konfigurasi dan Rendering Plotly.js
@@ -523,6 +570,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let wave_y = data.x.map((_, i) => {
       let val = data.psi_real[i] * cos_p + data.psi_imag[i] * sin_p;
+      if (data.V0_infinite === true && data.x[i] > data.L) {
+        val *= infiniteAmplify;
+      }
       return val;
     });
 
@@ -730,6 +780,9 @@ document.addEventListener("DOMContentLoaded", () => {
       // Re(Psi(x,t)) = Re(psi(x) * exp(-iEt))
       // = psi_real * cos(Et) + psi_imag * sin(Et)
       let val = data.psi_real[i] * cos_p + data.psi_imag[i] * sin_p;
+      if (data.V0_infinite === true && data.x[i] > data.L) {
+        val *= infiniteAmplify;
+      }
       wave_y[i] = val; // Tanpa offset energi
     }
 
