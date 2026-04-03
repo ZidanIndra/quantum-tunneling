@@ -570,6 +570,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let wave_y = data.x.map((_, i) => {
       let val = data.psi_real[i] * cos_p + data.psi_imag[i] * sin_p;
+      val = Math.abs(val);
       if (data.V0_infinite === true && data.x[i] > data.L) {
         val *= infiniteAmplify;
       }
@@ -588,7 +589,7 @@ document.addEventListener("DOMContentLoaded", () => {
         smoothing: 1.3,
       },
       hoverinfo: isEmbed ? "skip" : "x+y",
-      name: "Gelombang Re(Psi)",
+      name: "Gelombang |Re(Psi)|",
     };
 
     // Konfigurasi Tata Letak Grafik
@@ -780,6 +781,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // Re(Psi(x,t)) = Re(psi(x) * exp(-iEt))
       // = psi_real * cos(Et) + psi_imag * sin(Et)
       let val = data.psi_real[i] * cos_p + data.psi_imag[i] * sin_p;
+      val = Math.abs(val);
       if (data.V0_infinite === true && data.x[i] > data.L) {
         val *= infiniteAmplify;
       }
